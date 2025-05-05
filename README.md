@@ -103,7 +103,7 @@ Aşağıdaki komutu kendi bilgilerinizle düzenleyerek çalıştırın:
 ```bash
 # RPC URL'lerinizi tanımlayın
 export ETHEREUM_HOSTS="https://sepolia.rpc.tenderly.co"
-export L1_CONSENSUS_HOST_URLS="https://api.chainstack.com/v1/YOUR_PROJECT_ID/ethereum/sepolia/beacon"
+export L1_CONSENSUS_HOST_URLS="https://ethereum-sepolia.core.chainstack.com/beacon/YOUR_PROJECT_ID"
 
 # Ethereum cüzdanınızı tanımlayın
 export VALIDATOR_PRIVATE_KEY="0xYourPrivateKeyHere"
