@@ -102,7 +102,7 @@ Aşağıdaki komutu kendi bilgilerinizle düzenleyerek çalıştırın:
 
 ```bash
 # RPC URL'lerinizi tanımlayın
-export ETHEREUM_HOSTS="https://sepolia.rpc.tenderly.co"
+export ETHEREUM_HOSTS="https://sepolia.gateway.tenderly.co"
 export L1_CONSENSUS_HOST_URLS="https://ethereum-sepolia.core.chainstack.com/beacon/YOUR_PROJECT_ID"
 
 # Ethereum cüzdanınızı tanımlayın
