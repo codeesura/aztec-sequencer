@@ -55,7 +55,6 @@ services:
       node
       --chain sepolia
       --http
-      --http.addr 0.0.0.0
       --ws
       --authrpc.jwtsecret /jwt/jwt.hex
       --authrpc.addr 0.0.0.0
@@ -81,7 +80,6 @@ services:
       --execution-endpoint http://reth:8551
       --execution-jwt /jwt/jwt.hex
       --http
-      --http-address 0.0.0.0
       --metrics
       --datadir /data
     ports:
