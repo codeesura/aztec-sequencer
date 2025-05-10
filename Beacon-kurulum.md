@@ -43,7 +43,20 @@ Kurulum işlemi `sepolia-node/` adlı bir klasör altında gerçekleşecektir.
 Aşağıdaki komutu terminale tek satır olarak yapıştırın:
 
 ```bash
-mkdir -p sepolia-node/{execution/data,beacon/data,jwt} && openssl rand -hex 32 > sepolia-node/jwt/jwt.hex && cat > sepolia-node/docker-compose.yml <<'EOF'
+mkdir -p sepolia-node/{execution/data,beacon/data,jwt} && \
+openssl rand -hex 32 > sepolia-node/jwt/jwt.hex && \
+cat <<EOF > sepolia-node/execution/reth.toml
+[prune]
+block_interval = 5
+
+[prune.segments]
+sender_recovery = "full"
+transaction_lookup = "full"
+receipts = "full"
+account_history = { distance = 10000 }
+storage_history = { distance = 10000 }
+EOF
+cat <<EOF > sepolia-node/docker-compose.yml
 version: '3.8'
 
 services:
@@ -60,11 +73,12 @@ services:
       --authrpc.addr 0.0.0.0
       --authrpc.port 8551
       --datadir /data
+      --config /data/reth.toml
     ports:
       - "8545:8545"
       - "8551:8551"
     volumes:
-      - ./execution/data:/data
+      - ./execution:/data
       - ./jwt:/jwt
 
   lighthouse:
@@ -80,6 +94,7 @@ services:
       --execution-endpoint http://reth:8551
       --execution-jwt /jwt/jwt.hex
       --http
+      --http-address 0.0.0.0
       --metrics
       --datadir /data
     ports:
