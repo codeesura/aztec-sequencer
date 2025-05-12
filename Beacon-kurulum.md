@@ -115,7 +115,7 @@ Kurulumdan sonra aşağıdaki adreslerden node'ların çalıştığını kontrol
 Logları görmek için:
 
 ```bash
-cd sepolia-node && docker compose logs -f
+cd ~/sepolia-node && docker compose logs -f
 ```
 
 ### 🔍 Sync Durumunu Kontrol Etme
