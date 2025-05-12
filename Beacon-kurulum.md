@@ -43,31 +43,28 @@ Kurulum işlemi `sepolia-node/` adlı bir klasör altında gerçekleşecektir.
 Aşağıdaki komutu terminale tek satır olarak yapıştırın:
 
 ```bash
-mkdir -p sepolia-node/{execution/data,beacon/data,jwt} && \
-openssl rand -hex 32 > sepolia-node/jwt/jwt.hex && \
-cat <<EOF > sepolia-node/execution/reth.toml
+mkdir -p sepolia-node/{execution/data,beacon/data,jwt} && openssl rand -hex 32 > sepolia-node/jwt/jwt.hex && cat <<EOF > sepolia-node/execution/reth.toml
 [prune]
 block_interval = 5
 
 [prune.segments]
-sender_recovery = "full"
-transaction_lookup = "full"
-receipts = "full"
-account_history = { distance = 10000 }
-storage_history = { distance = 10000 }
+sender_recovery = { distance = 10064 }
+transaction_lookup = { distance = 10064 }
+receipts = { distance = 10064 }
+account_history = { distance = 10064 }
+storage_history = { distance = 10064 }
 EOF
 cat <<EOF > sepolia-node/docker-compose.yml
-version: '3.8'
-
 services:
   reth:
-    image: ghcr.io/paradigmxyz/reth:latest
+    image: ghcr.io/paradigmxyz/reth:v1.3.12
     container_name: reth
     restart: unless-stopped
     command: >
       node
       --chain sepolia
       --http
+      --http.addr 0.0.0.0
       --ws
       --authrpc.jwtsecret /jwt/jwt.hex
       --authrpc.addr 0.0.0.0
@@ -103,7 +100,7 @@ services:
       - ./beacon/data:/data
       - ./jwt:/jwt
 EOF
-cd sepolia-node && docker compose up -d
+cd sepolia-node && docker compose down && docker compose up -d
 ```
 
 ---
