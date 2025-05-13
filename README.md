@@ -236,9 +236,9 @@ services:
       - ETHEREUM_HOSTS=http://localhost:8545
       - L1_CONSENSUS_HOST_URLS=http://localhost:5052
       - DATA_DIRECTORY=/data
-      - VALIDATOR_PRIVATE_KEY=\${VALIDATOR_PRIVATE_KEY}
-      - VALIDATOR_ADDRESS=\${VALIDATOR_ADDRESS}
-      - P2P_IP=\${P2P_IP}
+      - VALIDATOR_PRIVATE_KEY=${VALIDATOR_PRIVATE_KEY}
+      - VALIDATOR_ADDRESS=${VALIDATOR_ADDRESS}
+      - P2P_IP=${P2P_IP}
       - LOG_LEVEL=info
     volumes:
       - ./data:/data
