@@ -1,6 +1,6 @@
-# Aztec Network Sequencer Node Kurulumu
+# Sepolia Execution + Beacon Node + Aztec Sequencer Kurulumu
 
-Bu rehber, Aztec Network Testnet üzerinde Sequencer Node kurulumunu adım adım anlatmaktadır.
+Bu rehber, Aztec Sequencer Node kurulumu için gerekli olan **Ethereum execution (Reth)**, **consensus (Lighthouse)** ve **sequencer (aztec-node)** bileşenlerinin nasıl kurulacağını adım adım anlatır. Tüm sistem tek bir sunucuda ve minimum dışa bağımlılıkla çalışacak şekilde yapılandırılmıştır.
 
 <details>
 <summary>📋 Sunucu Kurulumu (Detaylı bilgi için tıklayın)</summary>
@@ -15,12 +15,21 @@ Aztec sequencer node, işlemleri sıralama ve blok üretmekten sorumlu kritik bi
 
 İşlemler ağa girdiğinde, sequencer node onları bloklara paketler ve gas limitleri, blok boyutu ve işlem geçerliliği gibi çeşitli kısıtlamaları kontrol eder. Bir blok yayınlanmadan önce, diğer sequencer node'ları (bu bağlamda doğrulayıcılar) tarafından doğrulanması gerekir. Bu doğrulayıcılar, bloğun geçerliliğini imzalayarak onaylar ve yeterli sayıda onay toplandığında (komitenin üçte ikisi artı bir), sequencer bloğu L1'e gönderebilir.
 
-## Donanım Gereksinimleri
+### Donanım Gereksinimleri
 
 - **Ağ:** 25 Mbps yukarı/aşağı
 - **İşlemci:** 8 çekirdek
 - **RAM:** 16 GB
 - **Depolama:** 1 TB SSD
+
+### Sepolia ETH Gerekliliği
+
+Sequencer node’un doğru çalışabilmesi için Sepolia ağında ETH’ye sahip olmanız gerekir. Bunun için:
+
+* [https://testnetbridge.com/sepolia](https://testnetbridge.com/sepolia) üzerinden küçük miktarlarda Sepolia ETH satın alabilirsiniz (5–10 USD yeterlidir).
+* Alternatif olarak [Sepolia PoW Faucet](https://sepolia-faucet.pk910.de/) ile de test ETH elde edebilirsiniz.
+
+---
 
 ## Gerekli Paketlerin Kurulumu
 
@@ -42,104 +51,190 @@ sudo apt update && sudo apt install -y \
 sudo usermod -aG docker $USER && newgrp docker
 ```
 
-Paketlerin kurulumu tamamlandıktan sonra sistemi yeniden başlatın:
+> ⚠️ `gnupg` kurulumu sırasında ekranda "OK" tuşuna basmanız gerekebilir.
+
+Kurulumdan sonra sistemi yeniden başlatın:
 
 ```bash
 sudo reboot
 ```
 
-## RPC ve Beacon RPC Erişimi
+---
 
-Sequencer node'unuzu çalıştırmak için iki farklı RPC endpoint'ine ihtiyacınız var:
-- **Ethereum RPC URL:** Ethereum ağına erişim için
-- **Beacon RPC URL:** Ethereum Beacon Chain'e erişim için
+## 2. Execution + Beacon Node Kurulumu (Snapshot ile)
 
-### Ethereum RPC URL (Tenderly)
-
-Tenderly, ücretsiz bir public RPC hizmeti sunmaktadır. Herhangi bir hesap oluşturmanıza gerek kalmadan doğrudan aşağıdaki URL'yi kullanabilirsiniz:
-
-```
-https://sepolia.rpc.tenderly.co
-```
-
-Bu RPC URL doğrudan kullanılabilir ve herhangi bir API anahtarı gerektirmez.
-
-### Beacon RPC URL (Chainstack)
-
-1. [Chainstack](https://chainstack.com/) üzerinde bir hesap oluşturun
-2. Kayıt olup giriş yaptıktan sonra dashboard'a gidin
-3. "Create a new project" butonuna tıklayın ve projenize bir isim verin
-4. Ardından "Explore All nodes" butonuna basın
-5. Ethereum'u seçtikten sonra biraz daha aşağı inip Sepolia Testnet'i seçin
-6. Her şey tamamlandıktan sonra "Consensus client HTTPS endpoint" RPC' Url'yi kaydedin
-
-Bu URL sizin Beacon RPC URL'nizdir ve Aztec Sequencer Node kurulumunda kullanacaksınız.
-
-## Sepolia Test ETH Alma
-
-Sequencer node'unuzu çalıştırmak için Sepolia test ağında ETH'ye ihtiyacınız olacak. Sepolia PoW Faucet kullanarak ETH alabilirsiniz.
-
-### Sepolia PoW Faucet
-
-[Sepolia PoW Faucet](https://sepolia-faucet.pk910.de/), tarayıcınızda mining yaparak Sepolia test ETH kazanmanızı sağlayan bir hizmettir.
-
-#### Nasıl Kullanılır:
-
-1. [Sepolia PoW Faucet](https://sepolia-faucet.pk910.de/) adresine gidin
-2. Ethereum adresinizi girin
-3. "Start Mining" butonuna tıklayın
-4. Tarayıcınızda mining işlemi başlayacaktır
-5. İstediğiniz miktarda ETH kazandığınızda "Claim Rewards" butonuna tıklayın
-6. ETH, belirttiğiniz adrese gönderilecektir
-
-Bu mining işlemi, gerçek ETH için değil, sadece test ağı için geçerli olan ETH'yi kazanmanızı sağlar. Mining süresi ne kadar uzun olursa, o kadar fazla test ETH kazanırsınız.
-
-## Docker Compose ile Tek Komutla Kurulum (En Basit Yöntem)
-
-### 1. Bilgilerinizi Tanımlayın
-
-Aşağıdaki komutu kendi bilgilerinizle düzenleyerek çalıştırın:
+### 2.1. Dizinleri oluştur ve JWT üret
 
 ```bash
-# RPC URL'lerinizi tanımlayın
-export ETHEREUM_HOSTS="https://sepolia.gateway.tenderly.co"
-export L1_CONSENSUS_HOST_URLS="https://ethereum-sepolia.core.chainstack.com/beacon/YOUR_PROJECT_ID"
-
-# Ethereum cüzdanınızı tanımlayın
-export VALIDATOR_PRIVATE_KEY="0xYourPrivateKeyHere"
-export VALIDATOR_ADDRESS="0xYourEthereumAddress"
-
-# IP adresinizi otomatik olarak alın
-export P2P_IP=$(curl -s ifconfig.me)
+mkdir -p ~/sepolia-node/{execution,beacon/data,jwt} && \
+openssl rand -hex 32 > ~/sepolia-node/jwt/jwt.hex
 ```
 
-### 2. Portları Açın
+### 2.2. Snapshot'ı indir ve `execution` dizinine çıkar
+
+Aşağıdaki komut, en son Sepolia Reth snapshot'ını indirir ve `~/sepolia-node/execution` dizinine çıkarır:
 
 ```bash
-sudo ufw allow 22/tcp
-sudo ufw allow 40400/tcp
-sudo ufw allow 40400/udp
-sudo ufw allow 8080/tcp
-sudo ufw enable
+BLOCK_NUMBER=$(curl -s https://snapshots.ethpandaops.io/sepolia/reth/latest) && \
+docker run -d --name snapshot-downloader \
+  -v ~/sepolia-node/execution:/data \
+  alpine /bin/sh -c "\
+    apk add --no-cache curl tar zstd && \
+    echo '📦 Downloading snapshot for block $BLOCK_NUMBER' && \
+    curl -s -L https://snapshots.ethpandaops.io/sepolia/reth/$BLOCK_NUMBER/snapshot.tar.zst | \
+    tar -I zstd -xvf - -C /data && \
+    echo '✅ Snapshot extraction complete.'"
 ```
 
-### 3. Docker Compose ile Node'u Başlatın
+#### Snapshot İndirme İlerlemesini Takip Etme
 
-Aşağıdaki tek komutu çalıştırarak node'unuzu başlatın:
+⚠️ **ÖNEMLİ:** Bir sonraki adıma geçmeden önce snapshot indirme işleminin tamamlanmasını beklemelisiniz.
+
+* Snapshot indirme durumunu kontrol etmek için:
+
+```bash
+docker logs -f snapshot-downloader
+```
+
+* Snapshot tamamen çıkarıldığında `✅ Snapshot extraction complete.` mesajı görünecektir. Bu mesajı görene kadar bekleyin.
+
+* İndirme işlemi tamamlandığında, snapshot konteynerini kaldırabilirsiniz:
+
+```bash
+docker rm -f snapshot-downloader
+```
+
+### 2.3. Execution ve Beacon node için `docker-compose.yml` oluştur
+
+```bash
+cat <<EOF > ~/sepolia-node/docker-compose.yml
+version: "3.8"
+services:
+  reth:
+    image: ghcr.io/paradigmxyz/reth:latest
+    container_name: reth
+    restart: unless-stopped
+    command: >
+      node
+      --chain sepolia
+      --datadir /data
+      --http
+      --http.addr 0.0.0.0
+      --http.port 8545
+      --ws
+      --authrpc.jwtsecret /jwt/jwt.hex
+      --authrpc.addr 0.0.0.0
+      --authrpc.port 8551
+      --config /data/reth.toml
+    ports:
+      - "8545:8545"
+      - "8551:8551"
+    volumes:
+      - ./execution:/data
+      - ./jwt:/jwt
+    network_mode: host
+
+  lighthouse:
+    image: sigp/lighthouse:latest
+    container_name: lighthouse
+    restart: unless-stopped
+    depends_on:
+      - reth
+    command: >
+      lighthouse bn
+      --network sepolia
+      --checkpoint-sync-url https://checkpoint-sync.sepolia.ethpandaops.io
+      --execution-endpoint http://localhost:8551
+      --execution-jwt /jwt/jwt.hex
+      --http
+      --http-address 0.0.0.0
+      --metrics
+      --datadir /data
+    ports:
+      - "5052:5052"
+    volumes:
+      - ./beacon:/data
+      - ./jwt:/jwt
+    network_mode: host
+EOF
+```
+
+### 2.4. Execution ve Beacon node'ları başlat
+
+```bash
+cd ~/sepolia-node && docker compose up -d
+```
+
+### 2.5. Senkronizasyon Durumunu Kontrol Et
+
+⚠️ **ÖNEMLİ:** Aztec node'unu başlatmadan önce Execution (Reth) ve Beacon (Lighthouse) node'larının senkronize olmasını beklemelisiniz.
+
+#### Reth senkronizasyon durumunu kontrol etme:
+
+```bash
+curl -s -X POST http://localhost:8545 \
+  -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' | grep result
+```
+
+* Senkronizasyon devam ediyorsa, çıktıda detaylı senkronizasyon bilgileri görünecektir.
+* Senkronizasyon tamamlandığında, çıktıda `"result":false` ifadesi yer alacaktır.
+
+#### Reth'in mevcut blok yüksekliğini kontrol etme:
+
+```bash
+curl -s -X POST http://localhost:8545 \
+  -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' | \
+  grep -o '"result":"[^"]*"' | cut -d'"' -f4 | xargs printf "%d\n"
+```
+
+* Bu komut, node'un şu anda senkronize olduğu blok numarasını ondalık formatta gösterecektir.
+* Son Sepolia blok yüksekliğini [Sepolia Explorer](https://sepolia.etherscan.io/)'dan kontrol edebilirsiniz.
+
+#### Lighthouse senkronizasyon durumunu kontrol etme:
+
+```bash
+cd ~/sepolia-node && \
+curl -s -X GET "http://localhost:5052/eth/v1/node/syncing" | grep -o '"is_syncing":[^,]*' | cut -d':' -f2
+```
+
+* Senkronizasyon tamamlandığında, çıktıda `false` ifadesi yer alacaktır.
+
+> **Not:** Senkronizasyon birkaç saat sürebilir. Senkronizasyon tamamlanana kadar düzenli olarak kontrol edin.
+
+## 3. Aztec Sequencer Kurulumu
+
+### 3.1. Bilgilerinizi Tanımlayın (.env dosyası oluştur)
+
+Sequencer node kurulumu için gerekli değişkenleri bir `.env` dosyasında toplamak sistemin daha güvenli ve düzenli olmasını sağlar:
+
+```bash
+mkdir -p ~/aztec-node && cd ~/aztec-node 
+cat > .env <<EOF
+VALIDATOR_PRIVATE_KEY=0xyourprivatekeyhere
+VALIDATOR_ADDRESS=0xyouraddresshere
+P2P_IP=$(curl -s ifconfig.me)
+EOF
+```
+
+> ⚠️ **ÖNEMLİ:** `.env` dosyasındaki `VALIDATOR_PRIVATE_KEY` ve `VALIDATOR_ADDRESS` değerlerini kendi özel anahtarınız ve adresinizle değiştirin.
+
+### 3.2. Docker Compose ile Aztec Node'u Başlatın
 
 ```bash
 mkdir -p ~/aztec-node/data && cd ~/aztec-node
 
 cat > docker-compose.yml << EOL
-version: '3'
 services:
   aztec-node:
     container_name: aztec-sequencer
     image: aztecprotocol/aztec:alpha-testnet
     restart: unless-stopped
+    network_mode: host
     environment:
-      - ETHEREUM_HOSTS=\${ETHEREUM_HOSTS}
-      - L1_CONSENSUS_HOST_URLS=\${L1_CONSENSUS_HOST_URLS}
+      - ETHEREUM_HOSTS=http://localhost:8545
+      - L1_CONSENSUS_HOST_URLS=http://localhost:5052
       - DATA_DIRECTORY=/data
       - VALIDATOR_PRIVATE_KEY=\${VALIDATOR_PRIVATE_KEY}
       - VALIDATOR_ADDRESS=\${VALIDATOR_ADDRESS}
@@ -158,31 +253,75 @@ EOL
 docker compose up -d && echo "✅ Aztec Sequencer başlatıldı! Logları görüntülemek için: docker compose logs -f"
 ```
 
-### 4. Logları İzleyin
+### 3.3. Logları İzleyin
 
 ```bash
 cd ~/aztec-node && docker compose logs -f
 ```
 
-### 5. Doğrulayıcı Olarak Kayıt Olun
+### 3.4. Aztec Node'un Senkronizasyon Durumunu Kontrol Edin
+
+Aztec node'unun son indirdiği blok numarasını görmek için:
+
+```bash
+cd ~/aztec-node && docker compose logs --tail 20 | grep "Downloaded L2 block" | tail -1 | grep -o '"blockNumber":[0-9]*' | cut -d':' -f2
+```
+
+* Bu komut, node'un indirdiği en son bloğun numarasını gösterecektir (örn: `40187`)
+* Bu blok numarasını [AztecScan](https://aztecscan.xyz/blocks/) üzerinden kontrol ederek senkronizasyonun güncel olup olmadığını anlayabilirsiniz
+* Örneğin: https://aztecscan.xyz/blocks/40187 (kendi blok numaranızı kullanın)
+
+Basit durum kontrolü:
+
+```bash
+curl -s http://localhost:8080/status
+```
+
+* Yanıt "OK" ise, node çalışıyor demektir.
+
+### 3.5. Doğrulayıcı Olarak Kayıt Olun
 
 Node'unuz tamamen senkronize olduktan sonra, aşağıdaki komutu çalıştırarak doğrulayıcı olarak kaydolabilirsiniz:
 
 ```bash
 cd ~/aztec-node && \
 docker compose exec aztec-node sh -c "node --no-warnings /usr/src/yarn-project/aztec/dest/bin/index.js add-l1-validator \
-  --l1-rpc-urls $ETHEREUM_HOSTS \
-  --private-key $VALIDATOR_PRIVATE_KEY \
-  --attester $VALIDATOR_ADDRESS \
-  --proposer-eoa $VALIDATOR_ADDRESS \
+  --l1-rpc-urls \$ETHEREUM_HOSTS \
+  --private-key \$VALIDATOR_PRIVATE_KEY \
+  --attester \$VALIDATOR_ADDRESS \
+  --proposer-eoa \$VALIDATOR_ADDRESS \
   --staking-asset-handler 0xF739D03e98e23A7B65940848aBA8921fF3bAc4b2 \
   --l1-chain-id 11155111"
 ```
 
 ## Diğer Bilgiler
 
-**Sepolia ETH:**
-Sepolia ETH ihtiyacınız için:
-- [Sepolia PoW Faucet](https://sepolia-faucet.pk910.de/) kullanabilirsiniz
-- Discord topluluğundan isteyebilirsiniz
+1. **Docker Konteynerlerinin Durumunu Kontrol Etme:**
+   ```bash
+   docker ps -a
+   ```
+
+2. **Reth Node Loglarını İnceleme:**
+   ```bash
+   cd ~/sepolia-node && docker compose logs -f reth
+   ```
+
+3. **Lighthouse Node Loglarını İnceleme:**
+   ```bash
+   cd ~/sepolia-node && docker compose logs -f lighthouse
+   ```
+
+4. **Aztec Node Loglarını İnceleme:**
+   ```bash
+   cd ~/aztec-node && docker compose logs -f
+   ```
+
+5. **Node'ları Yeniden Başlatma:**
+   ```bash
+   # Execution ve Beacon node'ları için:
+   cd ~/sepolia-node && docker compose restart
+   
+   # Aztec node için:
+   cd ~/aztec-node && docker compose restart
+   ```
 
