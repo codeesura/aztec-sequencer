@@ -230,7 +230,7 @@ cat > docker-compose.yml << EOL
 services:
   aztec-node:
     container_name: aztec-sequencer
-    image: aztecprotocol/aztec:alpha-testnet
+    image: aztecprotocol/aztec:0.87.2
     restart: unless-stopped
     network_mode: host
     environment:
