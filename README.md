@@ -221,7 +221,27 @@ EOF
 
 > ⚠️ **ÖNEMLİ:** `.env` dosyasındaki `VALIDATOR_PRIVATE_KEY` ve `VALIDATOR_ADDRESS` değerlerini kendi özel anahtarınız ve adresinizle değiştirin.
 
-### 3.2. Docker Compose ile Aztec Node'u Başlatın
+### 3.2. Gerekli Portları Açın (UFW ile Güvenlik Duvarı Ayarı)
+
+Sequencer node’un dış dünyadan erişilebilir olması için, aşağıdaki portları açmanız gerekir:
+
+```bash
+sudo ufw allow 22
+sudo ufw allow 40400
+sudo ufw allow 8080
+sudo ufw enable
+sudo ufw status verbose
+```
+> Not: Eğer UFW sisteminizde kurulu değilse, önce kurmanız gerekir:
+>
+> ```
+> sudo apt update
+> sudo apt install ufw
+> ```
+
+Bu adımları tamamladıktan sonra, sunucunuzun gerekli portları dışarıya açılmış olacak ve Sequencer node’unuz diğer düğümlerle iletişim kurabilecektir.
+
+### 3.3. Docker Compose ile Aztec Node'u Başlatın
 
 ```bash
 mkdir -p ~/aztec-node/data && cd ~/aztec-node
@@ -255,13 +275,13 @@ EOL
 docker compose up -d && echo "✅ Aztec Sequencer başlatıldı! Logları görüntülemek için: docker compose logs -f"
 ```
 
-### 3.3. Logları İzleyin
+### 3.4. Logları İzleyin
 
 ```bash
 cd ~/aztec-node && docker compose logs -f
 ```
 
-### 3.4. Aztec Node'un Senkronizasyon Durumunu Kontrol Edin
+### 3.5. Aztec Node'un Senkronizasyon Durumunu Kontrol Edin
 
 Aztec node'unun son indirdiği blok numarasını görmek için:
 
@@ -281,7 +301,7 @@ curl -s http://localhost:8080/status
 
 * Yanıt "OK" ise, node çalışıyor demektir.
 
-### 3.5. Doğrulayıcı Olarak Kayıt Olun
+### 3.6. Doğrulayıcı Olarak Kayıt Olun
 
 Node'unuz tamamen senkronize olduktan sonra, aşağıdaki komutu çalıştırarak doğrulayıcı olarak kaydolabilirsiniz:
 
