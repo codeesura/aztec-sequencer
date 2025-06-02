@@ -214,7 +214,7 @@ mkdir -p ~/aztec-node && cd ~/aztec-node
 cat > .env <<EOF
 VALIDATOR_PRIVATE_KEY=0xyourprivatekeyhere
 VALIDATOR_ADDRESS=0xyouraddresshere
-P2P_IP=$(curl -s ifconfig.me)
+P2P_IP=$(curl -s api.ipify.org)
 GOVERNANCE_PROPOSER_PAYLOAD_ADDRESS=0x54F7fe24E349993b363A5Fa1bccdAe2589D5E5Ef
 EOF
 ```
