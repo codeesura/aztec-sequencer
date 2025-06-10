@@ -250,7 +250,7 @@ cat > docker-compose.yml << EOL
 services:
   aztec-node:
     container_name: aztec-sequencer
-    image: aztecprotocol/aztec:0.87.6
+    image: aztecprotocol/aztec:0.87.8
     restart: unless-stopped
     network_mode: host
     environment:
@@ -269,7 +269,7 @@ services:
       - "40400:40400/udp"
       - "8080:8080/tcp"
     entrypoint: >
-      sh -c 'node --no-warnings /usr/src/yarn-project/aztec/dest/bin/index.js start --network alpha-testnet --node --archiver --sequencer --p2p.maxTxPoolSize 1000000000'
+      sh -c 'node --no-warnings /usr/src/yarn-project/aztec/dest/bin/index.js start --network alpha-testnet --node --archiver --sequencer --sequencer.attestationPollingIntervalMs 100 --p2p.maxPeerCount 250 --sequencer.transactionPollingIntervalMS 200 --p2p.gossipsubInterval 300 --p2p.gossipsubMcacheLength 12 --p2p.gossipsubMcacheGossip 6 --p2p.maxTxPoolSize 1500000000'
 EOL
 
 docker compose up -d && echo "✅ Aztec Sequencer başlatıldı! Logları görüntülemek için: docker compose logs -f"
